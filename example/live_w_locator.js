@@ -1,3 +1,4 @@
+    // var cors = require('cors');
 $(function() {
     var resultCollector = Quagga.ResultCollector.create({
         capture: true,
@@ -113,25 +114,25 @@ $(function() {
                 self._printCollectedResults();
             });
 
-            $(".controls .reader-config-group").on("change", "input, select", function(e) {
-                e.preventDefault();
-                var $target = $(e.target),
-                    value = $target.attr("type") === "checkbox" ? $target.prop("checked") : $target.val(),
-                    name = $target.attr("name"),
-                    state = self._convertNameToState(name);
+            // $(".controls .reader-config-group").on("change", "input, select", function(e) {
+            //     e.preventDefault();
+            //     var $target = $(e.target),
+            //         value = $target.attr("type") === "checkbox" ? $target.prop("checked") : $target.val(),
+            //         name = $target.attr("name"),
+            //         state = self._convertNameToState(name);
 
-                console.log("Value of "+ state + " changed to " + value);
-                self.setState(state, value);
-            });
+            //     console.log("Value of "+ state + " changed to " + value);
+            //     self.setState(state, value);
+            // });
         },
         _printCollectedResults: function() {
             var results = resultCollector.getResults(),
                 $ul = $("#result_strip ul.collector");
 
             results.forEach(function(result) {
-                var $li = $('<li><div class="thumbnail"><div class="imgWrapper"><img /></div><div class="caption"><h4 class="code"></h4></div></div></li>');
+                var $li = $('<li><div class="thumbnail"><!--<div class="imgWrapper"><img /></div>--><div class="caption"><h4 class="code"></h4></div></div></li>');
 
-                $li.find("img").attr("src", result.frame);
+                // $li.find("img").attr("src", result.frame);
                 $li.find("h4.code").html(result.codeResult.code + " (" + result.codeResult.format + ")");
                 $ul.prepend($li);
             });
@@ -209,22 +210,10 @@ $(function() {
                 return parseInt(value);
             },
             decoder: {
-                readers: function(value) {
-                    if (value === 'ean_extended') {
-                        return [{
-                            format: "ean_reader",
-                            config: {
-                                supplements: [
-                                    'ean_5_reader', 'ean_2_reader'
-                                ]
-                            }
-                        }];
-                    }
-                    return [{
-                        format: value + "_reader",
-                        config: {}
-                    }];
-                }
+                 readers : [{
+                    format: "upc_reader",
+                    config: {}
+                }]
             }
         },
         state: {
@@ -245,7 +234,7 @@ $(function() {
             frequency: 10,
             decoder: {
                 readers : [{
-                    format: "code_128_reader",
+                    format: "upc_reader",
                     config: {}
                 }]
             },
@@ -254,7 +243,9 @@ $(function() {
         lastResult : null
     };
 
+
     App.init();
+    // App.use(cors());
 
     Quagga.onProcessed(function(result) {
         var drawingCtx = Quagga.canvas.ctx.overlay,
@@ -282,14 +273,25 @@ $(function() {
 
     Quagga.onDetected(function(result) {
         var code = result.codeResult.code;
+        console.log(code);
+        var company;
 
+        // 'https://api.barcodelookup.com/v2/products?barcode=9780140157376&formatted=y&key=4rxexlfozn35l8f2zacotob6e5f2pj'
+        // console.log("http://api.upcitemdb.com/prod/trial/lookup?upc="+code);
+        fetch("https://api.barcodelookup.com/v2/products?barcode="+code+"&formatted=y&key=4rxexlfozn35l8f2zacotob6e5f2pj", {method:'GET'})
+            .then(response => response.body)
+            .then(response => response.getReader().read())
+            .then(data => console.log(JSON.stringify(data)))
+            .then(function(company){
+                return company;
+            })
         if (App.lastResult !== code) {
             App.lastResult = code;
             var $node = null, canvas = Quagga.canvas.dom.image;
 
             $node = $('<li><div class="thumbnail"><div class="imgWrapper"><img /></div><div class="caption"><h4 class="code"></h4></div></div></li>');
-            $node.find("img").attr("src", canvas.toDataURL());
-            $node.find("h4.code").html(code);
+            // $node.find("img").attr("src", canvas.toDataURL());
+            $node.find("h4.code").html(company);
             $("#result_strip ul.thumbnails").prepend($node);
         }
     });

@@ -1,4 +1,4 @@
-    // var cors = require('cors');
+
 $(function() {
     var resultCollector = Quagga.ResultCollector.create({
         capture: true,
@@ -243,9 +243,7 @@ $(function() {
         lastResult : null
     };
 
-
     App.init();
-    // App.use(cors());
 
     Quagga.onProcessed(function(result) {
         var drawingCtx = Quagga.canvas.ctx.overlay,
@@ -270,30 +268,77 @@ $(function() {
             }
         }
     });
+    function wait (ms) {
+      return new Promise(function (resolve, reject) {
+        setTimeout(resolve, ms);
+      });
+    }
+
+    function parseString(company) {
+        // insert reference to csv file
+        var commonWords = ['llc', 'co', 'and', 'corp', 'inc', 'group']
+        company.toLowerCase();
+        company.replace(/[^\w\d ]/g, '');
+        var result = company.split(' ');
+        result = result.filter(function(word) {
+            return commonWords.indexOf(word) === -1;
+        })
+        result = result.unique();
+        console.log(result);
+    }
+
+    // function findBestMatch(company) {
+    //     for ()
+    // }
 
     Quagga.onDetected(function(result) {
         var code = result.codeResult.code;
         console.log(code);
-        var company;
 
-        // 'https://api.barcodelookup.com/v2/products?barcode=9780140157376&formatted=y&key=4rxexlfozn35l8f2zacotob6e5f2pj'
-        // console.log("http://api.upcitemdb.com/prod/trial/lookup?upc="+code);
-        fetch("https://api.barcodelookup.com/v2/products?barcode="+code+"&formatted=y&key=4rxexlfozn35l8f2zacotob6e5f2pj", {method:'GET'})
-            .then(response => response.body)
-            .then(response => response.getReader().read())
-            .then(data => console.log(JSON.stringify(data)))
-            .then(function(company){
-                return company;
-            })
-        if (App.lastResult !== code) {
-            App.lastResult = code;
-            var $node = null, canvas = Quagga.canvas.dom.image;
+        // 
+        fetch("https://cors-anywhere.herokuapp.com/https://api.barcodelookup.com/v2/products?barcode="+code+"&formatted=y&key=omfz45xhrzxeumqrcmvkrt9ds1v85c", {headers: {
+           "Access-Control-Allow-Origin": "*"}})
+            .then(response =>response.json())
+            .then(response => JSON.stringify(response["products"][0]["manufacturer"]))
+            .then(response =>company = response)
+            .then(response => set_info(response))
+        function set_info(company){
+            var substring = company.substr(1, company.indexOf(" ")-1);
+            console.log(substring == 'Nestle');
+            console.log(substring);
+            var row = ENVIRON_DATA.find(function(element) { 
+                  // return (element[0].search(substring)!=-1 || element[0].substr(0, element[0].indexOf(" ")) == substring);
+                  return element[0].search(substring)!=-1; 
+                }); 
 
-            $node = $('<li><div class="thumbnail"><div class="imgWrapper"><img /></div><div class="caption"><h4 class="code"></h4></div></div></li>');
-            // $node.find("img").attr("src", canvas.toDataURL());
-            $node.find("h4.code").html(company);
-            $("#result_strip ul.thumbnails").prepend($node);
+            console.log(row);
+            if(row){
+                var grade = row[2];
+                var c02= row[1];
+            } else{
+                var grade = "N/A";
+                var c02 = "N/A"
+            }
+            
+            console.log(grade);
+            console.log(c02);
+
+            if (App.lastResult !== code) {
+                App.lastResult = code;
+                document.getElementById("grade").innerHTML= grade;
+                document.getElementById("co2").innerHTML= c02;
+                // var $node = null, canvas = Quagga.canvas.dom.image;
+
+                // $node = $('<li><div class="thumbnail"><div class="imgWrapper"><img /></div><div class="caption"><h4 class="code"></h4><h4 class="grade"></h4><h4 class= "c02"></h4></div></div></li>');
+                // // $node.find("img").attr("src", canvas.toDataURL());
+                // $node.find("h4.code").html(company);
+                // $node.find("h4.grade").html(grade);
+                // $node.find("h4.c02").html(c02);
+                // $("#result_strip ul.thumbnails").prepend($node);
+            }
+
         }
+        
     });
 
 });
